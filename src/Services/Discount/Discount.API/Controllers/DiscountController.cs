@@ -1,7 +1,7 @@
-﻿using System;
-using Discount.API.Entities;
+﻿using Discount.API.Entities;
 using Discount.API.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Net;
 using System.Threading.Tasks;
 
