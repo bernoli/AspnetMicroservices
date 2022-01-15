@@ -28,8 +28,7 @@ namespace Basket.API.Controllers
             var basket = await _basketRepository.GetBasket(username);
             return Ok(basket ?? new ShoppingCart(username));
         }
-
-
+        
         [HttpPost]
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<ShoppingCart>> UpdateBasket([FromBody] ShoppingCart shoppingCart)
