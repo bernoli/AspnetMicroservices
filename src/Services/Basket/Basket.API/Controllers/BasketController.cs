@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using Basket.API.GrpcServices;
 
 namespace Basket.API.Controllers
 {
@@ -14,11 +15,13 @@ namespace Basket.API.Controllers
     {
         private readonly IBasketRepository _basketRepository;
         private readonly ILogger<BasketController> _logger;
+        private readonly DiscountGrpcService _discountGrpcService;
 
-        public BasketController(IBasketRepository basketRepository, ILogger<BasketController> logger)
+        public BasketController(IBasketRepository basketRepository, ILogger<BasketController> logger, DiscountGrpcService discountGrpcService)
         {
             _basketRepository = basketRepository ?? throw new ArgumentNullException(nameof(basketRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _discountGrpcService = discountGrpcService;
         }
 
         [HttpGet("{userName}", Name = "GetBasket")]
@@ -33,6 +36,12 @@ namespace Basket.API.Controllers
         [ProducesResponseType(typeof(ShoppingCart), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<ShoppingCart>> UpdateBasket([FromBody] ShoppingCart shoppingCart)
         {
+            foreach (var shoppingCartItem in shoppingCart.Items)
+            {
+                var coupon = await _discountGrpcService.GetDiscount(shoppingCartItem.ProductName);
+                shoppingCartItem.Price -= coupon.Amount;
+            }
+            
             var basket = await _basketRepository.UpdateBasket(shoppingCart);
             return Ok(basket);
         }
