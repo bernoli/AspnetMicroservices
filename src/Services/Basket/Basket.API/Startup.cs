@@ -2,6 +2,7 @@ using System;
 using Basket.API.GrpcServices;
 using Basket.API.Repositories;
 using Discount.Grpc.Protos;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -24,18 +25,31 @@ namespace Basket.API
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            
+            services.AddAutoMapper(typeof(Startup));
+
+            services.AddMassTransit(configurator => configurator
+                .UsingRabbitMq((context, cgf) =>
+                {
+                    cgf.Host(Configuration["EventBusSettings:HostAddress"]);
+                }));
+            services.AddMassTransitHostedService();
+
+            services.AddStackExchangeRedisCache(options =>
+                options.Configuration = Configuration["CacheSettings:ConnectionString"]
+            );
+            
+            services.AddScoped<IBasketRepository, BasketRepository>();
+            services.AddScoped<DiscountGrpcService>();
+            
+            services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>
+                (options => options.Address = new Uri(Configuration["GrpcSettings:DiscountUrl"]));
+
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Basket.API", Version = "v1" });
             });
-            services.AddStackExchangeRedisCache(options =>
-                options.Configuration = Configuration["CacheSettings:ConnectionString"]
-            );
-            services.AddScoped<IBasketRepository, BasketRepository>();
-            services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>
-                (options => options.Address = new Uri(Configuration["GrpcSettings:DiscountUrl"]));
-           
-            services.AddScoped<DiscountGrpcService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
